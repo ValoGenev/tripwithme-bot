@@ -147,8 +147,6 @@ public class InfoExtractor {
 
     public final static List<String> DIRECTIONS= Arrays.asList(
             "от",
-
-
             "до",
             "към",
             "за",

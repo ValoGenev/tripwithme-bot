@@ -1,7 +1,5 @@
 package bot.utils;
 
-import bot.model.Group;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -169,8 +167,8 @@ public class GroupsNamesAndUrls {
             new Group(GROUP_29_URL,GROUP_29_NAME)
     ));
 
-    public static final List<Group> GROUPS12 = new ArrayList<>(Collections.singletonList(
-            new Group(GROUP_12_URL, GROUP_12_NAME)
+    public static final List<Group> GROUPS_TEST = new ArrayList<>(Collections.singletonList(
+            new Group(GROUP_1_URL, GROUP_1_NAME,GROUP_1_CITIES)
 
     ));
 

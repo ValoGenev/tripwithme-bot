@@ -5,6 +5,7 @@ import bot.model.ScrappedPostInfo;
 import bot.model.ScrappedTestInfo;
 import bot.model.WillRideOrDrivePair;
 import bot.utils.City;
+import bot.utils.Group;
 import bot.utils.InfoExtractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.openqa.selenium.By;
@@ -14,7 +15,6 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import bot.config.ExecutorConfiguration;
-import bot.model.Group;
 
 import java.io.File;
 import java.io.IOException;
@@ -91,6 +91,7 @@ public class BotExecutorService {
 
             navigateToGroup(group.getName(), group.getUrl());
 
+
             //взима статуси от група (да се добави: да скролва докато не има всички нови статуси)
             postFromFBS = getStatuses();
 
@@ -98,44 +99,42 @@ public class BotExecutorService {
             //важно: да взима сторита снимки
             //getProfileInfo(postFromFBS);
 
-            extractInformation2(postFromFBS);
+            extractInformation2(group.getCities(), postFromFBS);
             //екстрактва информация от постове и формира нов обект
 
         }
 
-        ObjectMapper mapper = new ObjectMapper();
-
-        try {
-
-            // Writing to a file
-            mapper.writeValue(new File("C:\\Users\\seasi\\Desktop\\coop backup\\bez address i payment\\2\\coop-travel\\bot-api\\src\\main\\java\\bot\\test.json"), allPosts );
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        ObjectMapper mapper = new ObjectMapper();
+//
+//        try {
+//
+//            // Writing to a file
+//            //mapper.writeValue(new File("C:\\Users\\seasi\\Desktop\\coop backup\\bez address i payment\\2\\coop-travel\\bot-api\\src\\main\\java\\bot\\test.json"), allPosts);
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
     }
 
-    private void extractInformation2(List<ScrappedPostInfo> postFromFBS) {
-        System.out.println("------------------------------------------------");
-
+    private void extractInformation2(List<City> defaultCities, List<ScrappedPostInfo> postFromFBS) {
 
         for (ScrappedPostInfo post : postFromFBS) {
 
             String text = post.getContent().toLowerCase();
-            int willDriveCount=0;
-            int willRideCount=0;
-            boolean willDrive=false;
-            boolean willRide=false;
+            int willDriveCount = 0;
+            int willRideCount = 0;
+            boolean willDrive = false;
+            boolean willRide = false;
             LocalDate travelDate;
             LocalDate dayOfTheWeek;
             LocalDate date = LocalDate.now();
             LocalTime[] periodOfTime;
             LocalTime[] specificPeriodOfTime;
             LocalTime startPeriodOfTime = LocalTime.now().withSecond(0).withNano(0);
-            LocalTime endPeriodOfTime= LocalTime.of(23,59);
+            LocalTime endPeriodOfTime = LocalTime.of(23, 59);
 
-            int seats =0;
+            int seats = 0;
 
             for (WillRideOrDrivePair willRideString : WILL_RIDE_PAIRS) {
                 if (text.contains(willRideString.getVerb())) {
@@ -156,12 +155,12 @@ public class BotExecutorService {
             if (willDriveCount > willRideCount) {
                 System.out.println("ПРЕДЛАГА МЯСТО");
                 scrappedTestInfo.setConditional("ПРЕДЛАГА МЯСТО");
-                willDrive=true;
+                willDrive = true;
                 // създаване на пътуване
             } else if (willDriveCount < willRideCount) {
                 System.out.println("ТЪРСИ МЯСТО");
                 scrappedTestInfo.setConditional("ТЪРСИ МЯСТО");
-                willRide=true;
+                willRide = true;
                 // създаване на търсене
             } else {
                 scrappedTestInfo.setConditional("НЕВАЛИДНО");
@@ -177,81 +176,96 @@ public class BotExecutorService {
             travelDate = extractDateFromStatus(text);
             dayOfTheWeek = extractDayOfTheWeekFromStatus(text);
 
-            if(dayOfTheWeek!=null){
-                date=dayOfTheWeek;
+            if (dayOfTheWeek != null) {
+                date = dayOfTheWeek;
             }
-            if(travelDate!=null){
-                date=travelDate;
+            if (travelDate != null) {
+                date = travelDate;
             }
 
             periodOfTime = extractTimeOfTheDay(text);
             specificPeriodOfTime = extractSpecificTimeOfTheDay(text);
 
-            if(periodOfTime!=null){
+            if (periodOfTime != null) {
                 startPeriodOfTime = periodOfTime[0];
                 endPeriodOfTime = periodOfTime[1];
             }
-            if(specificPeriodOfTime!=null) {
+            if (specificPeriodOfTime != null) {
                 startPeriodOfTime = specificPeriodOfTime[0];
                 endPeriodOfTime = specificPeriodOfTime[1];
             }
 
-            LocalDateTime startTime = LocalDateTime.of(date,startPeriodOfTime);
-            LocalDateTime endTime = LocalDateTime.of(date,endPeriodOfTime);
+            LocalDateTime startTime = LocalDateTime.of(date, startPeriodOfTime);
+            LocalDateTime endTime = LocalDateTime.of(date, endPeriodOfTime);
 
-            List<City> cities = new ArrayList<>();
-            List<City> testCities = new ArrayList<>();
-
+            Map<Integer, City> maps = new TreeMap<>();
 
             for (City c : City.values()) {
 
                 for (String cityAlternativeName : c.getNames()) {
                     if (text.contains(cityAlternativeName.toLowerCase())) {
-                        cities.add(c);
-                        testCities.add(c);
                         text = text.replace(cityAlternativeName.toLowerCase(), c.name());
+
+                        maps.put(text.indexOf(c.name()), c);
+
                         break;
                     }
                 }
             }
 
-            for(City c: cities){
-                String textWithoutSpaces = text.replaceAll("\\s+","");
-                for(String s : DIRECTIONS){
-                    if(textWithoutSpaces.contains(DIRECTIONS+c.name())){
-                        if(s.equals("от")){
-                            testCities.add(0,c);
-                        }
+            List<City> cities = new ArrayList<>();
 
-                    }
+            String textWithoutSpaces = text.replaceAll("\\s+", "");
+
+            for (City city : maps.values()) {
+
+                cities.add(city);
+                if (maps.values().size() == 1) {
+
+                    defaultCities
+                            .stream()
+                            .filter(d -> !d.equals(city))
+                            .findFirst()
+                            .ifPresent(cities::add);
                 }
 
+                for (String s : DIRECTIONS) {
+                    if (textWithoutSpaces.contains(s + city.name())) {
 
+                        if (s.equals("от")) {
+                            cities.remove(city);
+                            cities.add(0, city);
+                        }
+
+                        if (s.equals("за") || s.equals("към") || s.equals("до") || s.equals("на")) {
+                            cities.remove(city);
+                            cities.add(cities.size(), city);
+                        }
+                    }
+                }
             }
-
-
-            scrappedTestInfo.setCities(cities);
-            allPosts.add(scrappedTestInfo);
-
-
-            String finalText = text;
-            cities.sort(Comparator.comparingInt(city -> finalText.indexOf(city.name())));
-
 
 
 
             System.out.println("-------------------------------------");
             System.out.println(text);
+            if(cities.size() < 1){
+                System.out.println("INVALID DESTIONATION");
+            }else {
+                System.out.println("Start point: "+ cities.get(0));
+                System.out.println("End point: "+ cities.get(cities.size()-1));
+            }
             System.out.println(startTime);
             System.out.println(endTime);
+            System.out.println(cities);
             System.out.println("-------------------------------------");
 
         }
 
     }
 
-    private LocalTime[] extractSpecificTimeOfTheDay(String text){
-        for (Map.Entry<String,String[]> entry : InfoExtractor.hoursAndMinutez.entrySet()) {
+    private LocalTime[] extractSpecificTimeOfTheDay(String text) {
+        for (Map.Entry<String, String[]> entry : InfoExtractor.hoursAndMinutez.entrySet()) {
             if (text.contains(entry.getKey())) {
                 return Arrays.stream(entry.getValue()).map(this::formatTime).toArray(LocalTime[]::new);
             }
@@ -260,9 +274,9 @@ public class BotExecutorService {
         return null;
     }
 
-    private LocalTime[] extractTimeOfTheDay(String text){
+    private LocalTime[] extractTimeOfTheDay(String text) {
 
-        for (Map.Entry<String,String[]> entry : timeOfTheDayzz.entrySet()) {
+        for (Map.Entry<String, String[]> entry : timeOfTheDayzz.entrySet()) {
             if (text.contains(entry.getKey())) {
                 return Arrays.stream(entry.getValue()).map(this::formatTime).toArray(LocalTime[]::new);
             }
@@ -270,9 +284,9 @@ public class BotExecutorService {
         return null;
     }
 
-    private int extractSeatsFromStatus(String text){
-        for (Map.Entry<String, Integer> entry: seatz.entrySet()) {
-            if(text.contains(entry.getKey())){
+    private int extractSeatsFromStatus(String text) {
+        for (Map.Entry<String, Integer> entry : seatz.entrySet()) {
+            if (text.contains(entry.getKey())) {
                 return entry.getValue();
             }
         }
@@ -280,15 +294,15 @@ public class BotExecutorService {
     }
 
     private LocalDate extractDayOfTheWeekFromStatus(String text) {
-        for (Map.Entry<String, Supplier<LocalDate>> entry: dayzz.entrySet()) {
-            if(text.contains(entry.getKey())){
+        for (Map.Entry<String, Supplier<LocalDate>> entry : dayzz.entrySet()) {
+            if (text.contains(entry.getKey())) {
                 return entry.getValue().get();
             }
         }
         return null;
     }
 
-    private LocalDate extractDateFromStatus(String text){
+    private LocalDate extractDateFromStatus(String text) {
 
         for (String d : InfoExtractor.dates) {
             if (text.contains(d)) {
@@ -330,7 +344,6 @@ public class BotExecutorService {
                     willDriveCount += willDriveString.getPoints();
                 }
             }
-
 
 
             for (String s : InfoExtractor.seats) {
@@ -496,13 +509,13 @@ public class BotExecutorService {
         return postFromFBS;
     }
 
-    private LocalTime formatTime(String text){
-        return LocalTime.parse(text,timeFormatter);
+    private LocalTime formatTime(String text) {
+        return LocalTime.parse(text, timeFormatter);
     }
 
-    private LocalDate formatDate(String text){
+    private LocalDate formatDate(String text) {
 
-        return LocalDate.parse(text.replaceFirst("[/.\\-]",".")+"."+LocalDate.now().getYear(), dateFormatter);
+        return LocalDate.parse(text.replaceFirst("[/.\\-]", ".") + "." + LocalDate.now().getYear(), dateFormatter);
     }
 
 

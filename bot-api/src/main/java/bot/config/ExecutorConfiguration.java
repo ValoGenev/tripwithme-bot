@@ -1,6 +1,6 @@
 package bot.config;
 
-import bot.model.Group;
+import bot.utils.Group;
 
 import java.util.List;
 

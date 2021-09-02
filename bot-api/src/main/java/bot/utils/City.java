@@ -2,7 +2,7 @@ package bot.utils;
 
 import java.util.List;
 
-public enum City {
+public enum City  {
 
     SOFIA("София",List.of("SOF","Safija","Serdica","Sofi","сф","sf","Sofia","Sofiae","Sofie","Sofii","Софий","София","Софија","Софія","студентски"),1152556,new double[]{42.69751,23.32415}),
     PLOVDIV("Пловдив",List.of("Plovdin","Plovdiv","Plowdiw","Пловдив"),340494,new double[]{42.15,24.75}),
@@ -353,4 +353,7 @@ public enum City {
     public void setBgName(String bgName) {
         this.bgName = bgName;
     }
+
+
+
 }

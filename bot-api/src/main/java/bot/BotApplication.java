@@ -48,6 +48,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static bot.utils.GroupsNamesAndUrls.*;
+import static bot.utils.InfoExtractor.DIRECTIONS;
 
 
 @org.springframework.boot.autoconfigure.SpringBootApplication
@@ -57,70 +58,21 @@ public class BotApplication {
     public static void main(String[] args) throws Exception {
         SpringApplication.run(BotApplication.class, args);
 
-//        List<ScrappedTestInfo> tests = new ArrayList<>();
-//
-//        ScrappedTestInfo test = new ScrappedTestInfo();
-//        test.setCities(List.of(City.BURGAS,City.SOFIA));
-//        test.setConditional("SHTE PUTUVA");
-//        test.setDescription("PUTUVAM UTRE V 5.30");
-//
-//
-//        tests.add(test);
-//
-//        ObjectMapper mapper = new ObjectMapper();
-//
-//        try {
-//
-//            // Writing to a file
-//            mapper.writeValue(new File("C:\\Users\\seasi\\Desktop\\coop backup\\bez address i payment\\2\\coop-travel\\bot-api\\src\\main\\java\\bot\\test.json"), tests );
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        CustomChromeDriver customChromeDriver = new CustomChromeDriver();
 
-//        CustomChromeDriver customChromeDriver = new CustomChromeDriver();
-//
-//        ChromeDriver chromeDriver = customChromeDriver.getChromeDriver();
-//
-//        ExecutorConfiguration executorConfiguration = new ExecutorConfiguration(GROUPS);
-//
-//        BotNavigationService botNavigationService = new BotNavigationService(chromeDriver);
-//        botNavigationService.openFaceBook();
-//        botNavigationService.loginToFacebook();
-//        BotExecutorService botExecutorService = botNavigationService.prepareExecutor(executorConfiguration);
-//
-//
-//         botExecutorService.startScanning();
+        ChromeDriver chromeDriver = customChromeDriver.getChromeDriver();
+
+        ExecutorConfiguration executorConfiguration = new ExecutorConfiguration(GROUPS_TEST);
+
+        BotNavigationService botNavigationService = new BotNavigationService(chromeDriver);
+        botNavigationService.openFaceBook();
+        botNavigationService.loginToFacebook();
+        BotExecutorService botExecutorService = botNavigationService.prepareExecutor(executorConfiguration);
 
 
-
-//        String textWithoutSpaces = ("Valo     Genev ot Burgas do Varna" +
-//                "dasdasdasdasd " +
-//                "dasdasdasda ne moga " +
-//                " dbras  das  " +
-//                "\n  dasdada dasdsdasda").replaceAll("\\s+","");
-//
-//        System.out.println(textWithoutSpaces);
-
-
-        List<String> lists = new ArrayList<>();
-
-        lists.add("valo");
-        lists.add("dana");
-        lists.add("kati");
-
-
-        lists.add(0,"petko");
-
-        System.out.println(lists);
-
-
-
-
-
-
-
+        botExecutorService.startScanning();
 
     }
+
 
 }

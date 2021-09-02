@@ -16,6 +16,11 @@ public class Group {
         this.cities=cities;
     }
 
+    public Group(String url, String name) {
+        this.url = url;
+        this.name = name;
+    }
+
     public String getUrl() {
         return url;
     }

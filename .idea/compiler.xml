@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="bot-api" />
+        <module name="coop-api" />
+        <module name="bot" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="config-api" target="1.8" />
+      <module name="task-listener-api" target="1.8" />
+      <module name="zdravei" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="bot" options="-parameters" />
+      <module name="bot-api" options="-parameters" />
+      <module name="config-api" options="-parameters" />
+      <module name="coop-api" options="-parameters" />
+      <module name="coop-travel" options="-parameters" />
+      <module name="task-listener-api" options="-parameters" />
+      <module name="zdravei" options="-parameters" />
+    </option>
+  </component>
+</project>

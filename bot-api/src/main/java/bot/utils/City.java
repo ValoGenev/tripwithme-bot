@@ -4,12 +4,12 @@ import java.util.List;
 
 public enum City  {
 
-    SOFIA("София",List.of("SOF","Safija","Serdica","Sofi","сф","sf","Sofia","Sofiae","Sofie","Sofii","Софий","София","Софија","Софія","студентски"),1152556,new double[]{42.69751,23.32415}),
+    SOFIA("София",List.of("SOF","Safija","Serdica","Sofi","сф","IEC","inter expo","интер експо","sf","Sofia","Sofiae","Sofie","Sofii","Софий","София","Софија","Софія","студентски"),1152556,new double[]{42.69751,23.32415}),
     PLOVDIV("Пловдив",List.of("Plovdin","Plovdiv","Plowdiw","Пловдив"),340494,new double[]{42.15,24.75}),
     VARNA("Варна",List.of("Варна","varna","warna"),312770,new double[]{43.21667,27.91667}),
     BURGAS("Бургас",List.of("Boergas","Bourgas","Bournkas","Burgas","bs","бс","Burgaz","Burghaz","Бургас"),195966,new double[]{42.50606,27.46781}),
     RUSE("Русе",List.of("ROU","Roese","Rouse","Rousse","Ruse","Russe","Русе"),156238,new double[]{43.84872,25.9534}),
-    STARA_ZAGORA("Стара Загора",List.of("SZR","Stara Sagora","Stara Zagora","stz","стз","Stara-Zagora","Stara-Zagorae","Стара Загора"),143431,new double[]{42.43278,25.64194}),
+    STARA_ZAGORA("Стара Загора",List.of("SZR","Stara Sagora","Stara Zagora","ст. загора","ст.загора","stz","стз","Stara-Zagora","Stara-Zagorae","Стара Загора"),143431,new double[]{42.43278,25.64194}),
     PLEVEN("Плевен",List.of("Pleven","Plevna","Plevne","Plewen","Плевен","плн"),118675,new double[]{43.41667,24.61667}),
     SLIVEN("Сливен",List.of("Islimiye","Islimje","Sliven","Slivenas","Slivno","Сливен","Слівен"),96368,new double[]{42.68583,26.32917}),
     DOBRICH("Добрич",List.of("Bazargic","Dobric","Dobrich","Dobrici","Dobricius","Dobricz","Dobritch","Dobritj","Dobrits","Dobritsch","Dobritsj","Dobritx","Dobritš","Dobriç","Dobriĉ","Dobrič","Dobričius","Dobrych","Dòbritx","Hadzi-Oghlu-Pazardzik","Hadži-Oghlu-Pazardžik","Khadzhioglu Bazardzhik","Khadzhioglu Pazardzhik","Ntomprits","Tolbuhin","Tolbukhin","dobeulichi","doburichi","duo bu li qi","dwbrch","dwbrych","dwbrytsh","dwbryz","Ντόμπριτς","Добрич","Добрыч","Դոբրիչ","דובריץ","دوبريتش","دوبرچ","دوبریچ","ドブリチ","多布里奇","도브리치"),94831,new double[]{43.56667,27.83333}),
@@ -51,7 +51,7 @@ public enum City  {
     SANDANSKI(List.of("Sandanski","Sveti Vrac","Sveti Vrach","Sveti Vrač","Sveti-Vratch","Svéti-Vratch","Sweti Wratsch","Xanne Sandanski","Yane Sandanski","Сандански","Свети Врач"),26459,new double[]{41.56667,23.28333}),
     SLUNCHEV_BRIQG(List.of("Slunchev brqg","Slanchev brqg","слънчев","Слънчев Бряг","сл. бряг","сл.бряг","Sunny Beach","Sunnybeach","Sonnenstrand","Слънчака","Сланчака"),10000,new double[]{42.658829, 27.689211}),
     SEVLIEVO(List.of("Savlievo","Seljvi","Selvi","Sevelijevo","Sevlievo","Sevlijevo","Sewliewo","Севлиево"),24582,new double[]{43.02583,25.11361}),
-    NOVA_ZAGORA(List.of("Eni Zagra","Ienizagra","Jeni Saghra","Jeni Zagra","Nova Zagora","Nova-Zagora","Nová Zagora","Nowa Sagora","Nowa Zagora","Yeni Sagra","Yeni Zagra","Yeni Zağra","nobajagola","nwwa zagwra","xin zha ge la","Νόβα Ζαγόρα","Нова Загора","Нова-Загора","נובה זאגורה","نووا زاگورا","نۆڤا زاگۆرا","新扎戈拉","노바자고라"),24340,new double[]{42.48333,26.01667}),
+    NOVA_ZAGORA(List.of("Eni Zagra","Ienizagra","Jeni Saghra","Jeni Zagra","Nova Zagora","н.загора","н.загора","Nova-Zagora","Nová Zagora","Nowa Sagora","Nowa Zagora","Yeni Sagra","Yeni Zagra","Yeni Zağra","nobajagola","nwwa zagwra","xin zha ge la","Νόβα Ζαγόρα","Нова Загора","Нова-Загора","נובה זאגורה","نووا زاگورا","نۆڤا زاگۆرا","新扎戈拉","노바자고라"),24340,new double[]{42.48333,26.01667}),
     VELINGRAD(List.of("Velingrad","Velingradas","Velinkrant","Welingrad","bellingeuladeu","vu~eringurato","wei lin ge lei","wlyngrad","Βέλιγκραντ","Велинград","ולינגראד","ولینگراد","ڤێلینگراد","ヴェリングラト","韋林格勒","벨린그라드"),24036,new double[]{42.02754,23.99155}),
     TROYAN(List.of("Comuna Troian","Gmina Trojan","Obshhina Trojan","Troian","Trojan","Troyan Municipality","Troïan","te luo yang shi","Община Троян","Троян","ტროიანის თემი","特羅揚市"),21162,new double[]{42.89427,24.71589}),
     AYTOS(List.of("Aitos","Ajtos","Aytos","Айтос"),20986,new double[]{42.7,27.25}),

@@ -6,15 +6,17 @@ public class ScrappedPostInfo {
     private String fullName;
     private String facebookId;
     private String picUrl;
+    private String smallPicUrl;
     private String profileUrl;
     private String content;
     private String timePosted;
 
-    public ScrappedPostInfo(String fullName, String facebookId, String picUrl, String profileUrl, String content, String timePosted) {
+    public ScrappedPostInfo(String fullName, String facebookId, String smallPicUrl,String picUrl, String profileUrl, String content, String timePosted) {
         this.fullName = fullName;
         this.facebookId = facebookId;
         this.picUrl = picUrl;
         this.profileUrl = profileUrl;
+        this.smallPicUrl=smallPicUrl;
         this.content = content;
         this.timePosted = timePosted;
     }
@@ -70,12 +72,21 @@ public class ScrappedPostInfo {
         this.timePosted = timePosted;
     }
 
+    public String getSmallPicUrl() {
+        return smallPicUrl;
+    }
+
+    public void setSmallPicUrl(String smallPicUrl) {
+        this.smallPicUrl = smallPicUrl;
+    }
+
     @Override
     public String toString() {
         return "ScrappedPostInfo{" +
                 "fullName='" + fullName + '\'' +
                 ", facebookId='" + facebookId + '\'' +
                 ", picUrl='" + picUrl + '\'' +
+                ", smallPicUrl='" + smallPicUrl + '\'' +
                 ", profileUrl='" + profileUrl + '\'' +
                 ", content='" + content + '\'' +
                 ", timePosted='" + timePosted + '\'' +

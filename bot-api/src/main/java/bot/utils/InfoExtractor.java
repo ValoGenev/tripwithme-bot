@@ -141,7 +141,8 @@ public class InfoExtractor {
             new WillRideOrDrivePair("мъжът ми ще тръгва", 10),
             new WillRideOrDrivePair("мъжа ми ще тръгва", 10),
             new WillRideOrDrivePair("синът ми ще тръгва", 10),
-            new WillRideOrDrivePair("дъщеря ми ще тръгва", 10)
+            new WillRideOrDrivePair("дъщеря ми ще тръгва", 10),
+            new WillRideOrDrivePair("тръгва",5)
 
     );
 
@@ -171,7 +172,9 @@ public class InfoExtractor {
             new WillRideOrDrivePair("някой има ли свободн", 10),
             new WillRideOrDrivePair("някой да има свободн", 10),
             new WillRideOrDrivePair("се търси", 5),
+            new WillRideOrDrivePair("търси се",5),
             new WillRideOrDrivePair("си търси", 5),
+            new WillRideOrDrivePair("някой", 5),
             new WillRideOrDrivePair("?", 5)
 
     );
@@ -239,6 +242,8 @@ public class InfoExtractor {
             put("три свободни места", 3);
             put("четери свободни места", 4);
             put("пет свободни места", 5);
+            put("имам места",2);
+            put("място",1);
         }
     };
 

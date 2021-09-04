@@ -2,12 +2,10 @@ package bot.processor;
 
 
 import bot.model.ScrappedPostInfo;
-import bot.model.ScrappedTestInfo;
 import bot.model.WillRideOrDrivePair;
 import bot.utils.City;
 import bot.utils.Group;
 import bot.utils.InfoExtractor;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
@@ -16,8 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import bot.config.ExecutorConfiguration;
 
-import java.io.File;
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -26,7 +22,6 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static bot.utils.InfoExtractor.*;
 import static java.lang.String.*;
@@ -39,18 +34,14 @@ public class BotExecutorService {
     private final ChromeDriver chromeDriver;
 
     private final ExecutorConfiguration config;
-    private static final Pattern idExtractorPattern = Pattern.compile("user/[0-9]*");
-    private static final Pattern dateExtractionPattern = Pattern.compile("\\d+");
+    private static final Pattern idUserExtractionPattern = Pattern.compile("user/[0-9]*");
+    private static final Pattern phpUserExtractionPattern = Pattern.compile("profile.php\\?id=[0-9]*");
+    private static final Pattern userNameIdUserExtractionPattern = Pattern.compile("com/.*\\?");
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("d.M.yyyy");
     private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
     private static final Pattern userNameExtractorPattern = Pattern.compile("facebook.com/.*");
-    private static final Pattern phoneExtractorPattern = Pattern.compile("\\d{10}");
-    private static final DateTimeFormatter hoursAndMinutesFormatter = DateTimeFormatter.ofPattern("HH:mm");
-    private static final DateTimeFormatter dayAndMonthFormatter = DateTimeFormatter.ofPattern("dd.mm");
-    LocalTime START_OF_DAY = LocalTime.MIDNIGHT;
-    LocalTime END_OF_DAY = LocalTime.MIDNIGHT.plusHours(24);
+    private static final Pattern phoneExtractorPattern = Pattern.compile("(359|0)\\d{9}");
 
-    List<ScrappedTestInfo> allPosts = new ArrayList<>();
 
 
     public BotExecutorService(ChromeDriver chromeDriver, ExecutorConfiguration config) {
@@ -77,6 +68,8 @@ public class BotExecutorService {
         ((JavascriptExecutor) chromeDriver).executeScript("window.scrollBy(0,document.body.scrollHeight)");
 
         Thread.sleep(5000);
+
+
     }
 
 
@@ -84,184 +77,399 @@ public class BotExecutorService {
 
         List<Group> fbGroups = config.getFbGroups();
 
-
         for (Group group : fbGroups) {
 
             List<ScrappedPostInfo> postFromFBS;
 
             navigateToGroup(group.getName(), group.getUrl());
 
-
             //взима статуси от група (да се добави: да скролва докато не има всички нови статуси)
             postFromFBS = getStatuses();
 
-            //минава по статусите и отваря профила на усер-а(ако усер-а съществува (по снимката) да не го взима)
-            //важно: да взима сторита снимки
             //getProfileInfo(postFromFBS);
 
-            extractInformation2(group.getCities(), postFromFBS);
+            extractInformation(group.getCities(), postFromFBS);
             //екстрактва информация от постове и формира нов обект
 
         }
 
-//        ObjectMapper mapper = new ObjectMapper();
-//
-//        try {
-//
-//            // Writing to a file
-//            //mapper.writeValue(new File("C:\\Users\\seasi\\Desktop\\coop backup\\bez address i payment\\2\\coop-travel\\bot-api\\src\\main\\java\\bot\\test.json"), allPosts);
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
 
     }
 
-    private void extractInformation2(List<City> defaultCities, List<ScrappedPostInfo> postFromFBS) {
+    private void extractInformation(List<City> defaultCities, List<ScrappedPostInfo> postFromFBS) {
 
         for (ScrappedPostInfo post : postFromFBS) {
 
-            String text = post.getContent().toLowerCase();
-            int willDriveCount = 0;
-            int willRideCount = 0;
-            boolean willDrive = false;
-            boolean willRide = false;
-            LocalDate travelDate;
-            LocalDate dayOfTheWeek;
-            LocalDate date = LocalDate.now();
-            LocalTime[] periodOfTime;
-            LocalTime[] specificPeriodOfTime;
-            LocalTime startPeriodOfTime = LocalTime.now().withSecond(0).withNano(0);
-            LocalTime endPeriodOfTime = LocalTime.of(23, 59);
+            try {
 
-            int seats = 0;
+                String text = post.getContent().toLowerCase();
+                int seats;
+                String number="";
+                int willDriveCount;
+                int willRideCount;
+                LocalDate date;
 
-            for (WillRideOrDrivePair willRideString : WILL_RIDE_PAIRS) {
-                if (text.contains(willRideString.getVerb())) {
-                    willRideCount += willRideString.getPoints();
-                }
-            }
+                willRideCount = calculateWillRidePoints(text);
+                willDriveCount = calculateWillDrivePoints(text);
 
-            for (WillRideOrDrivePair willDriveString : WILL_DRIVE_PAIRS) {
-                if (text.contains(willDriveString.getVerb())) {
-                    willDriveCount += willDriveString.getPoints();
-                }
-            }
+                seats = extractSeatsFromStatus(text);
 
-            ScrappedTestInfo scrappedTestInfo = new ScrappedTestInfo();
-            scrappedTestInfo.setDescription(text);
+                number = extractNumber(text);
 
+                date = extractValidOrDefaultDate(text);
 
-            if (willDriveCount > willRideCount) {
-                System.out.println("ПРЕДЛАГА МЯСТО");
-                scrappedTestInfo.setConditional("ПРЕДЛАГА МЯСТО");
-                willDrive = true;
-                // създаване на пътуване
-            } else if (willDriveCount < willRideCount) {
-                System.out.println("ТЪРСИ МЯСТО");
-                scrappedTestInfo.setConditional("ТЪРСИ МЯСТО");
-                willRide = true;
-                // създаване на търсене
-            } else {
-                scrappedTestInfo.setConditional("НЕВАЛИДНО");
-                System.out.println("НЕВАЛИДНО");
-                System.out.println(text);
+                LocalTime[] period = extractValidOrDefaultPeriodOfTime(text);
+                LocalDateTime startTime = LocalDateTime.of(date, period[0]);
+                LocalDateTime endTime = LocalDateTime.of(date, period[1]);
 
-                continue;
-            }
+                Map<Integer, City> extractedCities = extractCities(text);
+                List<City> citiesInOrder = orderCities(text,extractedCities,defaultCities);
 
+                if(citiesInOrder.size()<2){
+                    System.out.println("INVALID");
 
-            seats = extractSeatsFromStatus(text);
-
-            travelDate = extractDateFromStatus(text);
-            dayOfTheWeek = extractDayOfTheWeekFromStatus(text);
-
-            if (dayOfTheWeek != null) {
-                date = dayOfTheWeek;
-            }
-            if (travelDate != null) {
-                date = travelDate;
-            }
-
-            periodOfTime = extractTimeOfTheDay(text);
-            specificPeriodOfTime = extractSpecificTimeOfTheDay(text);
-
-            if (periodOfTime != null) {
-                startPeriodOfTime = periodOfTime[0];
-                endPeriodOfTime = periodOfTime[1];
-            }
-            if (specificPeriodOfTime != null) {
-                startPeriodOfTime = specificPeriodOfTime[0];
-                endPeriodOfTime = specificPeriodOfTime[1];
-            }
-
-            LocalDateTime startTime = LocalDateTime.of(date, startPeriodOfTime);
-            LocalDateTime endTime = LocalDateTime.of(date, endPeriodOfTime);
-
-            Map<Integer, City> maps = new TreeMap<>();
-
-            for (City c : City.values()) {
-
-                for (String cityAlternativeName : c.getNames()) {
-                    if (text.contains(cityAlternativeName.toLowerCase())) {
-                        text = text.replace(cityAlternativeName.toLowerCase(), c.name());
-
-                        maps.put(text.indexOf(c.name()), c);
-
-                        break;
-                    }
-                }
-            }
-
-            List<City> cities = new ArrayList<>();
-
-            String textWithoutSpaces = text.replaceAll("\\s+", "");
-
-            for (City city : maps.values()) {
-
-                cities.add(city);
-                if (maps.values().size() == 1) {
-
-                    defaultCities
-                            .stream()
-                            .filter(d -> !d.equals(city))
-                            .findFirst()
-                            .ifPresent(cities::add);
+                    continue;
                 }
 
-                for (String s : DIRECTIONS) {
-                    if (textWithoutSpaces.contains(s + city.name())) {
+                City startPoint = citiesInOrder.get(0);
+                City endPoints = citiesInOrder.get(citiesInOrder.size()-1);
+                List<City> interMediatePoints = extractInterMediateCities(citiesInOrder);
 
-                        if (s.equals("от")) {
-                            cities.remove(city);
-                            cities.add(0, city);
-                        }
-
-                        if (s.equals("за") || s.equals("към") || s.equals("до") || s.equals("на")) {
-                            cities.remove(city);
-                            cities.add(cities.size(), city);
-                        }
-                    }
+                if(seats != 0){
+                    willDriveCount++;
                 }
+
+                System.out.println("USER: " + post.getFullName());
+                System.out.println("USER MINI PICTURE: " + post.getSmallPicUrl());
+                System.out.println("USER PICTURE : "+ post.getPicUrl());
+                System.out.println("PROFILE : " + post.getProfileUrl());
+                System.out.println("ID : "+ post.getFacebookId());
+                System.out.println("POSTED ON: "+ post.getTimePosted());
+                System.out.println("DESCRIPTION: "+ post.getContent());
+                System.out.println("PHONE NUMBER: " + number);
+                System.out.println("START TIME :" + startTime);
+                System.out.println("END TIME : "+ endTime);
+                System.out.println("STARTING POINT : "+ startPoint);
+                System.out.println("END POINT : "+ endPoints);
+                System.out.println("INTERMEDIATE POINTS : " + interMediatePoints);
+                System.out.println("FULL ROUTE : " + citiesInOrder);
+                System.out.println("SEATS : " + seats);
+
+                if (willDriveCount > willRideCount) {
+                    System.out.println("ПРЕДЛАГА МЯСТО");
+
+                    // създаване на пътуване
+                } else if (willDriveCount < willRideCount) {
+                    System.out.println("ТЪРСИ МЯСТО");
+
+                    // създаване на търсене
+                } else {
+                    System.out.println("НЕВАЛИДНО");
+
+                    System.out.println("-----------------------------");
+
+                    continue;
+
+                }
+
+
+            }catch (Exception e){
+                e.printStackTrace();
             }
 
-
-
-            System.out.println("-------------------------------------");
-            System.out.println(text);
-            if(cities.size() < 1){
-                System.out.println("INVALID DESTIONATION");
-            }else {
-                System.out.println("Start point: "+ cities.get(0));
-                System.out.println("End point: "+ cities.get(cities.size()-1));
-            }
-            System.out.println(startTime);
-            System.out.println(endTime);
-            System.out.println(cities);
             System.out.println("-------------------------------------");
 
         }
 
+    }
+
+    private List<City> extractInterMediateCities(List<City> citiesInOrder){
+
+        List<City> interMediatePoints = new ArrayList<>();
+
+        for(int i=0;i<citiesInOrder.size();i++){
+
+            if(i==0 || i==citiesInOrder.size()-1) continue;
+            interMediatePoints.add(citiesInOrder.get(i));
+        }
+        return interMediatePoints;
+    }
+
+    private void assertValidRoute(List<City> cities){
+        System.out.println();
+        if(cities.size() < 2){
+            throw new RuntimeException("INVALID ROUTE");
+        }
+    }
+
+    private Map<Integer,City> extractCities(String text){
+        Map<Integer, City> maps = new TreeMap<>();
+
+        for (City c : City.values()) {
+
+            for (String cityAlternativeName : c.getNames()) {
+                if (text.contains(cityAlternativeName.toLowerCase())) {
+                    text = text.replace(cityAlternativeName.toLowerCase(), c.name());
+
+                    maps.put(text.indexOf(c.name()), c);
+
+                    break;
+                }
+            }
+        }
+        return maps;
+    }
+
+
+    private LocalTime[] extractValidOrDefaultPeriodOfTime(String text){
+        LocalTime startPeriodOfTime = LocalTime.now().withSecond(0).withNano(0);
+        LocalTime endPeriodOfTime = LocalTime.of(23, 59);
+
+        LocalTime[] periodOfTime = extractTimeOfTheDay(text);
+        LocalTime[] specificPeriodOfTime = extractSpecificTimeOfTheDay(text);
+
+        if (periodOfTime != null) {
+            startPeriodOfTime = periodOfTime[0];
+            endPeriodOfTime = periodOfTime[1];
+        }
+        if (specificPeriodOfTime != null) {
+            startPeriodOfTime = specificPeriodOfTime[0];
+            endPeriodOfTime = specificPeriodOfTime[1];
+        }
+
+        return new LocalTime[]{startPeriodOfTime,endPeriodOfTime};
+    }
+
+    private LocalDate extractValidOrDefaultDate(String text){
+
+        LocalDate d1  = extractDateFromStatus(text);
+        LocalDate d2 = extractDayOfTheWeekFromStatus(text);
+
+        if (d1 != null) {
+            return d1;
+        }
+        if (d2 != null) {
+            return d2;
+        }
+
+        return LocalDate.now();
+
+
+    }
+
+    private int calculateWillDrivePoints(String text){
+        int willDriveCount = 0;
+        for (WillRideOrDrivePair willDriveString : WILL_DRIVE_PAIRS) {
+            if (text.contains(willDriveString.getVerb())) {
+                willDriveCount += willDriveString.getPoints();
+            }
+        }
+        return willDriveCount;
+    }
+
+
+    private List<City> orderCities(String text,Map<Integer,City> extractedCities,List<City> defaultCities){
+
+        List<City> citiesInOrder = new ArrayList<>();
+
+        String textWithoutSpaces = text.replaceAll("\\s+", "");
+
+        for (City city : extractedCities.values()) {
+
+            citiesInOrder.add(city);
+            if (extractedCities.values().size() == 1) {
+
+                defaultCities
+                        .stream()
+                        .filter(d -> !d.equals(city))
+                        .findFirst()
+                        .ifPresent(citiesInOrder::add);
+            }
+
+
+            for (String s : DIRECTIONS) {
+                if (textWithoutSpaces.contains(s + city.name())) {
+
+                    if (s.equals("от")) {
+                        citiesInOrder.remove(city);
+                        citiesInOrder.add(0, city);
+                    }
+
+                    if (s.equals("за") || s.equals("към") || s.equals("до") || s.equals("на")) {
+                        citiesInOrder.remove(city);
+                        citiesInOrder.add(citiesInOrder.size(), city);
+                    }
+
+                }
+            }
+        }
+
+        return citiesInOrder;
+    }
+
+    private int calculateWillRidePoints(String text){
+        int willRideCount=0;
+
+        for (WillRideOrDrivePair willRideString : WILL_RIDE_PAIRS) {
+            if (text.contains(willRideString.getVerb())) {
+                willRideCount += willRideString.getPoints();
+            }
+        }
+
+        return willRideCount;
+    }
+
+    private void getProfileInfo(List<ScrappedPostInfo> postFromFBS) {
+
+        for (ScrappedPostInfo post : postFromFBS) {
+
+            //TODO if USER exists using user url or id
+            //TODO if yes(get them from database and skip selenium)
+
+
+            try {
+
+                chromeDriver.navigate().to(post.getProfileUrl());
+
+                WebElement picElem = chromeDriver.findElementByXPath("//*[local-name()='svg' and @role=\"img\"]");
+
+                String profilePic = picElem.findElements(By.tagName("image")).get(0).getAttribute("xlink:href");
+                //TODO need to fix xpath when story is available
+
+
+                post.setPicUrl(profilePic);
+                post.setProfileUrl(chromeDriver.getCurrentUrl());
+
+                if (post.getFacebookId().isBlank()) {
+                    post.setFacebookId(extractor(post.getProfileUrl(), userNameExtractorPattern));
+                }
+            } catch (Exception ex2) {
+                ex2.printStackTrace();
+            }
+        }
+
+    }
+
+    private List<ScrappedPostInfo> getStatuses()  {
+        String fullName = "";
+        String facebookId = "";
+        String profileUrl = "";
+        String content = "";
+        String timePosted = "";
+
+        List<ScrappedPostInfo> postFromFBS = new ArrayList<>();
+
+
+        try {
+            List<WebElement> elements = chromeDriver.findElementsByXPath("//div[@class=\"du4w35lb k4urcfbm l9j0dhe7 sjgh65i0\"]");
+
+            for (WebElement e : elements) {
+
+                try {
+                    WebElement userNameElement = e.findElement(By.xpath(".//a[@class=\"oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz rq0escxv nhd2j8a9 nc684nl6 p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a qt6c0cv9 a8nywdso i1ao9s8h esuyzwwr f1sip0of lzcic4wl oo9gr5id gpro0wi8 lrazzd5p\"\n]"));
+                    WebElement contentElement;
+                    WebElement userProfileRef = e.findElement(By.xpath(".//a[@class=\"oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz rq0escxv nhd2j8a9 nc684nl6 p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a qt6c0cv9 a8nywdso i1ao9s8h esuyzwwr f1sip0of lzcic4wl oo9gr5id gpro0wi8 lrazzd5p\"]"));
+                    String smallProfilePic = e.findElement(By.tagName("image")).getAttribute("xlink:href");
+
+
+                    if (e.findElements(By.xpath(".//div[@class=\" linoseic datstx6m\"]")).size() > 0) {
+                        contentElement = e.findElement(By.xpath(".//div[@class=\" linoseic datstx6m\"]"));
+                    } else if (e.findElements(By.xpath(".//div[@class=\"kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x c1et5uql ii04i59q\"]")).size() > 0) {
+                        contentElement = e.findElement(By.xpath(".//div[@class=\"kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x c1et5uql ii04i59q\"]"));
+                    } else {
+                        continue;
+                    }
+
+                    fullName = userNameElement.getText();
+                    content = contentElement.getText();
+                   // facebookId = extractor(userProfileRef.getAttribute(HREF_ATTRIBUTE), idUserExtractionPattern);
+
+                    System.out.println(userProfileRef.getAttribute(HREF_ATTRIBUTE));
+
+                    facebookId = testExtractor(userProfileRef.getAttribute(HREF_ATTRIBUTE));
+
+                    if (facebookId.isEmpty()) {
+                        profileUrl = userProfileRef.getAttribute(HREF_ATTRIBUTE);
+                    } else {
+                        profileUrl = "https://www.facebook.com/" + facebookId;
+                    }
+
+                    timePosted = getCurrentTime();
+
+                    ScrappedPostInfo scrappedPostInfo = new ScrappedPostInfo();
+
+                    scrappedPostInfo.setFullName(fullName);
+                    scrappedPostInfo.setProfileUrl(profileUrl);
+                    scrappedPostInfo.setTimePosted(timePosted);
+                    scrappedPostInfo.setContent(content);
+                    scrappedPostInfo.setFacebookId(facebookId);
+                    scrappedPostInfo.setSmallPicUrl(smallProfilePic);
+
+                    postFromFBS.add(scrappedPostInfo);
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        return postFromFBS;
+    }
+
+    private LocalTime formatTime(String text) {
+        return LocalTime.parse(text, timeFormatter);
+    }
+
+    private LocalDate formatDate(String text) {
+
+        return LocalDate.parse(text.replaceFirst("[/.\\-]", ".") + "." + LocalDate.now().getYear(), dateFormatter);
+    }
+
+    private String testExtractor(String profileUrl){
+
+        Matcher m = idUserExtractionPattern.matcher(profileUrl);
+        Matcher m2 = phpUserExtractionPattern.matcher(profileUrl);
+        Matcher m3 = userNameIdUserExtractionPattern.matcher(profileUrl);
+
+        if(m3.find()){
+            return m3.group().substring(0, m3.group().length() - 1).split("/")[1];
+        }
+
+        if(m2.find()){
+            return m2.group();
+        }
+
+        if (m.find()) {
+            return m.group().split("/")[1];
+        }
+
+        return "";
+    }
+
+    private String extractor(String profileUrl, Pattern pattern) {
+        Matcher m = pattern.matcher(profileUrl);
+
+
+        if (m.find()) {
+
+            return m.group().split("/")[1];
+        }
+
+        return "";
+    }
+
+    private String extractNumber(String text) {
+        Matcher m = phoneExtractorPattern.matcher(text.replaceAll("\\s+", ""));
+
+        if (m.find()) {
+            return m.group();
+        }
+
+        return "";
     }
 
     private LocalTime[] extractSpecificTimeOfTheDay(String text) {
@@ -290,7 +498,7 @@ public class BotExecutorService {
                 return entry.getValue();
             }
         }
-        return 0;
+        return 1;
     }
 
     private LocalDate extractDayOfTheWeekFromStatus(String text) {
@@ -312,232 +520,6 @@ public class BotExecutorService {
         }
 
         return null;
-    }
-
-
-    private void extractInformation(List<ScrappedPostInfo> postFromFBS) {
-        System.out.println("------------------------------------------------");
-
-
-        for (ScrappedPostInfo post : postFromFBS) {
-            String text = post.getContent().toLowerCase();
-            String date = "";
-            String seat = "";
-            String timeOfTheDay = "";
-            String dayOfTheWeek = "";
-            String phoneNumber = "";
-            String departureTime = "";
-
-
-            int willDriveCount = 0;
-            int willRideCount = 0;
-
-
-            for (WillRideOrDrivePair willRideString : WILL_RIDE_PAIRS) {
-                if (text.contains(willRideString.getVerb())) {
-                    willRideCount += willRideString.getPoints();
-                }
-            }
-
-            for (WillRideOrDrivePair willDriveString : WILL_DRIVE_PAIRS) {
-                if (text.contains(willDriveString.getVerb())) {
-                    willDriveCount += willDriveString.getPoints();
-                }
-            }
-
-
-            for (String s : InfoExtractor.seats) {
-                if (text.contains(s)) {
-                    seat = s;
-                    break;
-                }
-            }
-
-            for (String s : InfoExtractor.days) {
-                if (text.contains(s)) {
-                    dayOfTheWeek = s;
-                    break;
-                }
-            }
-
-            for (String s : InfoExtractor.timeOfTheDay) {
-                if (text.contains(s)) {
-                    timeOfTheDay = s;
-                    break;
-                }
-            }
-
-            for (String s : InfoExtractor.hourAndMinutes) {
-                if (text.contains(s)) {
-                    departureTime = s;
-                    break;
-                }
-            }
-
-
-            System.out.println(text);
-
-            if (willDriveCount > willRideCount) {
-                System.out.println("ПРЕДЛАГА МЯСТО");
-            } else if (willDriveCount < willRideCount) {
-                System.out.println("ТЪРСИ МЯСТО");
-            } else {
-                System.out.println("НЕВАЛИДНО");
-                continue;
-            }
-
-            List<City> cities = new ArrayList<>();
-
-
-            for (City c : City.values()) {
-
-                for (String cityAlternativeName : c.getNames()) {
-                    if (text.contains(cityAlternativeName.toLowerCase())) {
-                        cities.add(c);
-                        text = text.replace(cityAlternativeName.toLowerCase(), c.name());
-                        break;
-                    }
-                }
-            }
-
-
-            String finalText = text;
-            cities.sort(Comparator.comparingInt(city -> finalText.indexOf(city.name())));
-
-
-            System.out.println("Брой свободни места : " + seat);
-            System.out.println("Ден на тръгване : " + date);
-            System.out.println("Ден от седмицата : " + dayOfTheWeek);
-            System.out.println("Време в деня : " + timeOfTheDay);
-            System.out.println("Час на тръване : " + departureTime);
-            System.out.println("Телефон: " + extractNumber(text));
-            System.out.println("Градове: " + cities.stream().map(Enum::name).collect(Collectors.joining(",")));
-
-            System.out.println("------------------------------------");
-
-        }
-
-    }
-
-
-    private void getProfileInfo(List<ScrappedPostInfo> postFromFBS) {
-
-        for (ScrappedPostInfo post : postFromFBS) {
-
-            try {
-
-
-                chromeDriver.navigate().to(post.getProfileUrl());
-
-                WebElement picElem = chromeDriver.findElementByXPath("//*[local-name()='svg' and @role=\"img\"]");
-
-                String profilePic = picElem.findElements(By.tagName("image")).get(0).getAttribute("xlink:href");
-
-                post.setPicUrl(profilePic);
-                post.setProfileUrl(chromeDriver.getCurrentUrl());
-
-                if (post.getFacebookId().isBlank()) {
-                    post.setFacebookId(extractor(post.getProfileUrl(), userNameExtractorPattern));
-                }
-            } catch (Exception ex2) {
-                ex2.printStackTrace();
-            }
-        }
-
-    }
-
-    private List<ScrappedPostInfo> getStatuses() {
-        String fullName = "";
-        String facebookId = "";
-        String profileUrl = "";
-        String content = "";
-        String timePosted = "";
-
-        List<ScrappedPostInfo> postFromFBS = new ArrayList<>();
-
-        try {
-            List<WebElement> elements = chromeDriver.findElementsByXPath("//div[@class=\"du4w35lb k4urcfbm l9j0dhe7 sjgh65i0\"]");
-
-            for (WebElement e : elements) {
-
-
-                try {
-                    WebElement userNameElement = e.findElement(By.xpath(".//a[@class=\"oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz rq0escxv nhd2j8a9 nc684nl6 p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a qt6c0cv9 a8nywdso i1ao9s8h esuyzwwr f1sip0of lzcic4wl oo9gr5id gpro0wi8 lrazzd5p\"\n]"));
-                    WebElement contentElement;
-                    WebElement userProfileRef = e.findElement(By.xpath(".//a[@class=\"oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz rq0escxv nhd2j8a9 nc684nl6 p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a qt6c0cv9 a8nywdso i1ao9s8h esuyzwwr f1sip0of lzcic4wl oo9gr5id gpro0wi8 lrazzd5p\"]"));
-
-
-                    if (e.findElements(By.xpath(".//div[@class=\" linoseic datstx6m\"]")).size() > 0) {
-                        contentElement = e.findElement(By.xpath(".//div[@class=\" linoseic datstx6m\"]"));
-                    } else if (e.findElements(By.xpath(".//div[@class=\"kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x c1et5uql ii04i59q\"]")).size() > 0) {
-                        contentElement = e.findElement(By.xpath(".//div[@class=\"kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x c1et5uql ii04i59q\"]"));
-                    } else {
-                        continue;
-                    }
-
-                    fullName = userNameElement.getText();
-                    content = contentElement.getText();
-                    facebookId = extractor(userProfileRef.getAttribute(HREF_ATTRIBUTE), idExtractorPattern);
-
-                    if (facebookId.isEmpty()) {
-                        profileUrl = userProfileRef.getAttribute(HREF_ATTRIBUTE);
-                    } else {
-                        profileUrl = "https://www.facebook.com/" + facebookId;
-                    }
-
-                    timePosted = getCurrentTime();
-
-                    ScrappedPostInfo scrappedPostInfo = new ScrappedPostInfo();
-
-                    scrappedPostInfo.setFullName(fullName);
-                    scrappedPostInfo.setProfileUrl(profileUrl);
-                    scrappedPostInfo.setTimePosted(timePosted);
-                    scrappedPostInfo.setContent(content);
-                    scrappedPostInfo.setFacebookId(facebookId);
-
-                    postFromFBS.add(scrappedPostInfo);
-
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return postFromFBS;
-    }
-
-    private LocalTime formatTime(String text) {
-        return LocalTime.parse(text, timeFormatter);
-    }
-
-    private LocalDate formatDate(String text) {
-
-        return LocalDate.parse(text.replaceFirst("[/.\\-]", ".") + "." + LocalDate.now().getYear(), dateFormatter);
-    }
-
-
-    private String extractor(String profileUrl, Pattern pattern) {
-        Matcher m = pattern.matcher(profileUrl);
-
-        if (m.find()) {
-
-            return m.group().split("/")[1];
-        }
-
-        return "";
-    }
-
-    private String extractNumber(String text) {
-        Matcher m = phoneExtractorPattern.matcher(text);
-
-        if (m.find()) {
-            return m.group();
-        }
-
-        return "";
     }
 
 

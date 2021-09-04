@@ -24,6 +24,9 @@ public class PostToBeCreated {
         this.comments = comments;
     }
 
+    public PostToBeCreated() {
+    }
+
     public String getTitle() {
         return title;
     }

@@ -75,6 +75,7 @@ public class BotExecutorService {
 
     public void startScanning() throws InterruptedException {
 
+
         List<Group> fbGroups = config.getFbGroups();
 
         for (Group group : fbGroups) {
@@ -96,7 +97,7 @@ public class BotExecutorService {
 
     }
 
-    private void extractInformation(List<City> defaultCities, List<ScrappedPostInfo> postFromFBS) {
+    public void extractInformation(List<City> defaultCities, List<ScrappedPostInfo> postFromFBS) {
 
         for (ScrappedPostInfo post : postFromFBS) {
 
@@ -118,12 +119,11 @@ public class BotExecutorService {
 
                 date = extractValidOrDefaultDate(text);
 
-                LocalTime[] period = extractValidOrDefaultPeriodOfTime(text);
+                LocalTime[] period = extractValidOrDefaultPeriodOfTime(date,text);
                 LocalDateTime startTime = LocalDateTime.of(date, period[0]);
                 LocalDateTime endTime = LocalDateTime.of(date, period[1]);
 
-                Map<Integer, City> extractedCities = extractCities(text);
-                List<City> citiesInOrder = orderCities(text,extractedCities,defaultCities);
+                List<City> citiesInOrder = orderCities(text,defaultCities);
 
                 if(citiesInOrder.size()<2){
                     System.out.println("INVALID");
@@ -202,27 +202,13 @@ public class BotExecutorService {
         }
     }
 
-    private Map<Integer,City> extractCities(String text){
-        Map<Integer, City> maps = new TreeMap<>();
 
-        for (City c : City.values()) {
+    private LocalTime[] extractValidOrDefaultPeriodOfTime(LocalDate date, String text){
 
-            for (String cityAlternativeName : c.getNames()) {
-                if (text.contains(cityAlternativeName.toLowerCase())) {
-                    text = text.replace(cityAlternativeName.toLowerCase(), c.name());
+        LocalTime startPeriodOfTime = date.isAfter(LocalDate.now())
+                ? LocalTime.of(0,0)
+                : LocalTime.now().withSecond(0).withNano(0);
 
-                    maps.put(text.indexOf(c.name()), c);
-
-                    break;
-                }
-            }
-        }
-        return maps;
-    }
-
-
-    private LocalTime[] extractValidOrDefaultPeriodOfTime(String text){
-        LocalTime startPeriodOfTime = LocalTime.now().withSecond(0).withNano(0);
         LocalTime endPeriodOfTime = LocalTime.of(23, 59);
 
         LocalTime[] periodOfTime = extractTimeOfTheDay(text);
@@ -268,44 +254,6 @@ public class BotExecutorService {
     }
 
 
-    private List<City> orderCities(String text,Map<Integer,City> extractedCities,List<City> defaultCities){
-
-        List<City> citiesInOrder = new ArrayList<>();
-
-        String textWithoutSpaces = text.replaceAll("\\s+", "");
-
-        for (City city : extractedCities.values()) {
-
-            citiesInOrder.add(city);
-            if (extractedCities.values().size() == 1) {
-
-                defaultCities
-                        .stream()
-                        .filter(d -> !d.equals(city))
-                        .findFirst()
-                        .ifPresent(citiesInOrder::add);
-            }
-
-
-            for (String s : DIRECTIONS) {
-                if (textWithoutSpaces.contains(s + city.name())) {
-
-                    if (s.equals("от")) {
-                        citiesInOrder.remove(city);
-                        citiesInOrder.add(0, city);
-                    }
-
-                    if (s.equals("за") || s.equals("към") || s.equals("до") || s.equals("на")) {
-                        citiesInOrder.remove(city);
-                        citiesInOrder.add(citiesInOrder.size(), city);
-                    }
-
-                }
-            }
-        }
-
-        return citiesInOrder;
-    }
 
     private int calculateWillRidePoints(String text){
         int willRideCount=0;
@@ -429,15 +377,13 @@ public class BotExecutorService {
         return LocalDate.parse(text.replaceFirst("[/.\\-]", ".") + "." + LocalDate.now().getYear(), dateFormatter);
     }
 
-    private String testExtractor(String profileUrl){
+    public static String testExtractor(String profileUrl){
+
+        System.out.println(profileUrl);
 
         Matcher m = idUserExtractionPattern.matcher(profileUrl);
         Matcher m2 = phpUserExtractionPattern.matcher(profileUrl);
         Matcher m3 = userNameIdUserExtractionPattern.matcher(profileUrl);
-
-        if(m3.find()){
-            return m3.group().substring(0, m3.group().length() - 1).split("/")[1];
-        }
 
         if(m2.find()){
             return m2.group();
@@ -445,6 +391,10 @@ public class BotExecutorService {
 
         if (m.find()) {
             return m.group().split("/")[1];
+        }
+
+        if(m3.find()){
+            return m3.group().substring(0, m3.group().length() - 1).split("/")[1];
         }
 
         return "";
@@ -520,6 +470,136 @@ public class BotExecutorService {
         }
 
         return null;
+    }
+
+
+    private List<City> orderCities(String text, List<City> defaultCities) {
+
+        String textWithoutAlternativeNames = replaceAlternativeName(text.toLowerCase());
+
+        Map<Integer, City> extractedCities = extractCities(textWithoutAlternativeNames);
+
+        List<City> citiesInOrder = new ArrayList<>();
+
+        String textWithoutSpaces = textWithoutAlternativeNames.replaceAll("\\s+", "");
+
+        if (extractedCities.values().size() == 1) {
+
+            Map.Entry<Integer, City> entry = extractedCities.entrySet().iterator().next();
+            City extractedCity = entry.getValue();
+            City furthestCity = null;
+            double distance;
+            double biggestDistance = 0;
+
+            for (City city : defaultCities) {
+                if (city.equals(extractedCity)) continue;
+                distance = distance(
+                        city.getCoordinates()[0],
+                        city.getCoordinates()[1],
+                        extractedCity.getCoordinates()[1],
+                        extractedCity.getCoordinates()[1]);
+
+                if (distance > biggestDistance) {
+                    furthestCity = city;
+                    biggestDistance = distance;
+                }
+
+            }
+
+            if (!Objects.isNull(furthestCity)) citiesInOrder.add(furthestCity);
+        }
+
+        boolean isEndPointGiven = false;
+        boolean isInterMediatePointGiven = false;
+
+        for (City city : extractedCities.values()) {
+
+            citiesInOrder.add(city);
+
+            if (isEndPointGiven && isInterMediatePointGiven) {
+
+                citiesInOrder.remove(city);
+                citiesInOrder.add(citiesInOrder.size() == 0 ? 0 : citiesInOrder.size() - 1, city);
+                isInterMediatePointGiven = true;
+                break;
+            }
+
+            for (String s : DIRECTIONS) {
+
+                if (textWithoutSpaces.contains(s + city.name())) {
+
+                    if (s.equals("от")) {
+                        citiesInOrder.remove(city);
+                        citiesInOrder.add(0, city);
+                        break;
+                    }
+
+                    if (s.equals("за") || s.equals("към") || s.equals("до") || s.equals("на")) {
+                        citiesInOrder.remove(city);
+                        citiesInOrder.add(citiesInOrder.size(), city);
+                        isEndPointGiven = true;
+                        break;
+                    }
+
+                    if (s.equals("през")) {
+                        citiesInOrder.remove(city);
+                        citiesInOrder.add(isEndPointGiven ? citiesInOrder.size() - 1 : citiesInOrder.size(), city);
+                        isInterMediatePointGiven = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return citiesInOrder;
+    }
+
+
+    private  String replaceAlternativeName(String text) {
+
+        for (City c : City.values()) {
+            for (String cityAlternativeName : c.getNames()) {
+                if (text.contains(cityAlternativeName.toLowerCase())) {
+                    text = text.replace(cityAlternativeName.toLowerCase(), c.name());
+                    break;
+                }
+            }
+        }
+
+        return text;
+    }
+
+    private  Map<Integer, City> extractCities(String text) {
+        Map<Integer, City> maps = new TreeMap<>();
+
+        for (City c : City.values()) {
+            if (text.contains(c.name())) {
+                maps.put(text.indexOf(c.name()), c);
+            }
+        }
+
+        return maps;
+    }
+
+    private  double distance(double lat1, double lon1, double lat2, double lon2) {
+        double theta = lon1 - lon2;
+        double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
+        dist = Math.acos(dist);
+        dist = rad2deg(dist);
+        dist = dist * 60 * 1.1515;
+
+        dist = dist * 1.609344;
+
+        return (dist);
+    }
+
+
+    private  double deg2rad(double deg) {
+        return (deg * Math.PI / 180.0);
+    }
+
+    private  double rad2deg(double rad) {
+        return (rad * 180.0 / Math.PI);
     }
 
 

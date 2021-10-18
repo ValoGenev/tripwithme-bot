@@ -126,6 +126,7 @@ public class BotExecutorService {
                 List<City> citiesInOrder = orderCities(text,defaultCities);
 
                 if(citiesInOrder.size()<2){
+                    System.out.println(text);
                     System.out.println("INVALID");
 
                     continue;

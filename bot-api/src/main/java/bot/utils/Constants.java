@@ -14,7 +14,7 @@ public class Constants {
     public static final String PATH_TO_CHROME_DRIVER= System.getProperty("user.dir")+"\\chromedriver.exe";
     public static final String FACEBOOK_URL="http://facebook.com";
     public static final String EMAIL = "valo_genev@abv.bg";
-    public static final String PASS = "jonatan1999";
+    public static final String PASS = "";
     public static final String XPATH_TO_LOGIN_ELEMENT="//button[@name=\"login\"]";
     public static final String XPATH_TO_EMAIL_ELEMENT="email";
     public static final String XPATH_TO_PASS_ELEMENT ="pass";

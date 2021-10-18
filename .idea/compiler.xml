@@ -7,12 +7,12 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="bot-api" />
-        <module name="coop-api" />
         <module name="bot" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="config-api" target="1.8" />
+      <module name="coop-api" target="1.8" />
       <module name="task-listener-api" target="1.8" />
       <module name="zdravei" target="1.8" />
     </bytecodeTargetLevel>

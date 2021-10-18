@@ -1,4 +1,0 @@
-register/name/familiq/email/parola/tel/gender/role/BigDecimal balance, PaymentType paymentType/String country, String town, String street
-RegisterUser|valo|genev|valo@abv.bg|51512|088590121|male|admin|5000
-
-RegisterUser|valo|genev|geosholo@abv.bg|51512|088590121|female|user|5000|VISA|Bulgaria|burgas|lazur146

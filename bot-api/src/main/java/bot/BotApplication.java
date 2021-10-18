@@ -59,25 +59,18 @@ public class BotApplication {
     public static void main(String[] args) throws Exception {
         SpringApplication.run(BotApplication.class, args);
 
-//        CustomChromeDriver customChromeDriver = new CustomChromeDriver();
-//
-//        ChromeDriver chromeDriver = customChromeDriver.getChromeDriver();
-//
-//        ExecutorConfiguration executorConfiguration = new ExecutorConfiguration(GROUPS);
-//
-//        BotNavigationService botNavigationService = new BotNavigationService(chromeDriver);
-//        botNavigationService.openFaceBook();
-//        botNavigationService.loginToFacebook();
-//        BotExecutorService botExecutorService = botNavigationService.prepareExecutor(executorConfiguration);
-//
-//        botExecutorService.startScanning();
+        CustomChromeDriver customChromeDriver = new CustomChromeDriver();
 
-        BotExecutorService botExecutorService = new BotExecutorService(null,null);
+        ChromeDriver chromeDriver = customChromeDriver.getChromeDriver();
 
-        ScrappedPostInfo scrappedPostInfo = new ScrappedPostInfo();
+        ExecutorConfiguration executorConfiguration = new ExecutorConfiguration(GROUPS);
 
+        BotNavigationService botNavigationService = new BotNavigationService(chromeDriver);
+        botNavigationService.openFaceBook();
+        botNavigationService.loginToFacebook();
+        BotExecutorService botExecutorService = botNavigationService.prepareExecutor(executorConfiguration);
 
-        botExecutorService.extractInformation(List.of(City.BURGAS,City.SOFIA), Collections.singletonList(scrappedPostInfo));
+        botExecutorService.startScanning();
 
 
 
